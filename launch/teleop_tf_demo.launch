@@ -1,0 +1,50 @@
+<launch>
+
+  <!-- Interface -->
+  <!-- ========= -->
+
+  <arg name="interface" default="keyboard"/>
+
+  <!-- Use keyboard -->
+  <group if="$(eval arg('interface') == 'keyboard')">
+    <include file="$(find operator_node)/launch/keyboard.launch"/>
+  </group>
+
+  <!-- Use spacenav -->
+  <group if="$(eval arg('interface') == 'spacenav')">
+
+    <!-- Spacenav driver -->
+    <node pkg="spacenav_node" type="spacenav_node" name="$(anon spacenav_node)" output="screen">
+      <param name="zero_when_static" value="true"/>
+      <param name="static_count_threshold" value="30"/>
+    </node>
+
+    <!-- Map spacenav to operator signal -->
+    <node pkg="operator_node" name="joy2osig" type="scale_node.py">
+      <remap from="joy" to="spacenav/joy"/>
+      <param name="axes" type="str" value="0 1 2 3 4 5"/>
+      <param name="scale" type="str" value="1.0"/>
+    </node>
+  </group>
+
+  <!-- Teleoperation -->
+  <!-- ============= -->
+
+  <!-- Set eff start pose -->
+  <node pkg="tf2_ros" type="static_transform_publisher" name="tf_start_pose_in_world"
+	args="0.5 0 0.5 0 0 0 world tf_start"/>
+
+  <!-- Use operator signal to update a tf -->
+  <node pkg="teleop" name="teleop_tf" type="teleop_tf_node.py">
+    <param name="parent_frame" type="str" value="tf_start"/>
+    <param name="child_frame" type="str" value="tf_target"/>
+    <param name="start_on_init" type="bool" value="true"/>
+  </node>
+
+  <!-- Visualization -->
+  <!-- ============= -->
+
+  <!-- Rviz -->
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find teleop)/rviz/teleop_tf_demo.rviz" />
+
+</launch>
