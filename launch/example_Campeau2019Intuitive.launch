@@ -1,0 +1,80 @@
+<launch>
+
+  <node pkg="joy" name="joy_node" type="joy_node">
+    <remap from="joy" to="joy/raw"/>
+    <param name="dev" type="string" value="/dev/input/js0" />
+    <param name="autorepeat_rate" type="double" value="120"/>
+    <param name="deadzone" type="double" value="0"/>
+  </node>
+
+  <node pkg="operator_node"
+        name="ensure_joy_states_output_at_given_hz"
+        type="joy_remap_node">
+    <remap from="joy_in" to="joy/raw"/>
+    <remap from="joy_out" to="joy"/>
+    <param name="hz" type="int" value="100"/>
+  </node>
+
+  <node pkg="operator_node" name="keyboard_scale" type="scale_node.py">
+    <param name="axes" type="str" value="0 1 2 3 4 5"/>
+    <param name="scale" type="str" value="1.0"/>
+  </node>
+
+  <node pkg="operator_node" name="Campeau2019Intuitive_node" type="Campeau2019Intuitive_node.py">
+    <param name="world_frame" type="string" value="rpbi/world"/>
+    <param name="eff_frame" type="string" value="rpbi/lwr/lwr_arm_7_link"/>
+    <param name="goal_frame" type="string" value="goal"/>
+  </node>
+
+  <node pkg="ik_ros" name="tf_to_floatarray" type="tf_to_floatarray_node.py">
+    <param name="parent_frame_id" type="string" value="rpbi/world"/>
+    <param name="child_frame_id" type="string" value="goal"/>
+    <remap from="transform" to="setup"/>
+  </node>
+
+  <!-- IK Node -->
+  <node pkg="ik_ros" name="ik_node" type="ik_node.py" args="SingleArmExoticaEffFrame" output="screen">
+    <param name="exotica_xml_filename" type="string" value="{ik_ros_examples}/configs/lwr.xml"/>
+    <param name="target_frame_id" type="string" value="Target"/>
+    <param name="base_frame_id" type="string" value="base"/>
+    <remap from="joint_states/target" to="rpbi/lwr/joint_state/target"/>
+  </node>
+
+  <!-- <node pkg="ik_ros" name="ik_node" type="ik_node.py" args="TracIK" output="screen"> -->
+  <!--   <param name="urdf_filename" type="string" value="{ik_ros_examples}/robots/lwr.urdf"/> -->
+  <!--   <param name="tip_link" type="string" value="lwr_arm_7_link"/> -->
+  <!--   <param name="base_link" type="string" value="base"/> -->
+  <!--   <remap from="joint_states/target" to="rpbi/lwr/joint_state/target"/> -->
+  <!-- </node> -->
+
+  <!-- ROS-Pybullet interface node simulator -->
+  <node pkg="ros_pybullet_interface" name="ros_pybullet_interface_node" type="ros_pybullet_interface_node.py">
+
+    <!-- Config file for Pybullet -->
+    <param name="pybullet_config" value="{ros_pybullet_interface_examples}/configs/pybullet_basic_example.yaml" type="str"/>
+
+    <!-- Node frequency -->
+    <param name="ros_node_freq" value="100" type="int"/>
+
+    <!-- Simulated robot -->
+    <rosparam param="robot_config_file_names">
+      [
+      "{ik_ros_examples}/configs/lwr.yaml",
+      ]
+    </rosparam>
+
+    <rosparam param="visual_object_config_file_names">
+      [
+      ]
+    </rosparam>
+
+  </node>
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="simulated_robot_base_tf_broadcaster"
+	args="0.0 0.0 0.0 0 0 0 rpbi/world lwr_base"/>
+
+  <node pkg="tf2_ros" type="static_transform_publisher" name="attach_world_to_rpbi_world"
+	args="0 0 0 0 0 0 world rpbi/world"/>
+
+
+</launch>
