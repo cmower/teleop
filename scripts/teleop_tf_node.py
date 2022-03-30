@@ -42,8 +42,8 @@ class Node:
         self.timer = None
         rospy.Subscriber('operator_node/signal', Float64MultiArray, self.callback)
         ToggleService('toggle_teleop_tf', self.start_teleop, self.stop_teleop)
-        rospy.Service('reset_transform', SetTransform, self.reset_transform)
-        rospy.Service('reset_zero', Trigger, self.reset_zero)
+        rospy.Service('reset_teleop_transform', SetTransform, self.reset_transform)
+        rospy.Service('reset_teleop_transform_to_zero', Trigger, self.reset_zero)
         if rospy.get_param('~start_on_init', False):
             self.start_teleop()
 
