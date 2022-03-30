@@ -55,6 +55,7 @@ class Node:
 
     def reset_zero(self, req):
         self.transform = np.zeros(6)
+        self.set_tf()
         return TriggerResponse(success=True, message='reset transform to zero')
 
     def start_teleop(self):
@@ -72,6 +73,7 @@ class Node:
         if self.timer is not None:
             self.h = np.zeros(6)  # ensure no more motion
             self.timer.shutdown()
+            self.timer = None
             success = True
             message = 'stopped tf teleoperation node'
         else:
@@ -92,6 +94,9 @@ class Node:
 
     def main_loop(self, event):
         self.transform += self.dt*self.h
+        self.set_tf()
+
+    def set_tf(self):
         self.tf.set_tf(self.parent_frame, self.child_frame, self.transform[:3], tf_conversions.transformations.quaternion_from_euler(self.transform[3], self.transform[4], self.transform[5]))
 
     def spin(self):
