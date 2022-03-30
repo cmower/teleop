@@ -51,6 +51,7 @@ class Node:
         self.transform[:3] = np.array([getattr(req.transform.translation, dim) for dim in 'xyz'])
         rot = np.array([getattr(req.transform.rotation, dim) for dim in 'xyzw'])
         self.transform[3:] = tf_conversions.transformations.euler_from_quaternion(rot)
+        self.set_tf()
         return SetTransformResponse(success=True, message='reset transform to ' + str(self.transform))
 
     def reset_zero(self, req):
