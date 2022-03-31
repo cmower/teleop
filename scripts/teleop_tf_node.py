@@ -31,26 +31,43 @@ from std_srvs.srv import Trigger, TriggerResponse
 class Node:
 
     def __init__(self):
+
+        # Initialize ros node
         rospy.init_node('teleop_tf_node')
         self.tf = TfInterface()
-        self.parent_frame = rospy.get_param('~parent_frame_id', 'world')
-        self.child_frame = rospy.get_param('~child_frame_id')
-        hz = rospy.get_param('~hz', 100)
-        self.dt = 1.0/float(hz)
+
+        # Get parameters
+        config = rospy.get_param('~config')
+        self.parent_frame = config.get('parent_frame_id', 'world')
+        self.child_frame = config['target_frame_id']
+        self.dt = 1.0/float(config.get('hz', 100))
+        self.duration = rospy.Duration(self.dt)
+
+        xlim = config.get('xlim', [-np.inf, np.inf])
+        ylim = config.get('ylim', [-np.inf, np.inf])
+        zlim = config.get('zlim', [-np.inf, np.inf])
+        self.lolim = np.array([xlim[0], ylim[0], zlim[0]])
+        self.uplim = np.array([xlim[1], ylim[1], zlim[1]])
+
+        # Setup other class attributes
         self.h = np.zeros(6)
         self.transform = np.zeros(6)  # position + euler angles
         self.timer = None
+
+        # Setup ros comm
         rospy.Subscriber('operator_node/signal', Float64MultiArray, self.callback)
         ToggleService('toggle_teleop_tf', self.start_teleop, self.stop_teleop)
         rospy.Service('reset_teleop_transform', SetTransform, self.reset_transform)
         rospy.Service('reset_teleop_transform_to_zero', Trigger, self.reset_zero)
+
+        # Start on initialization (optional)
         if rospy.get_param('~start_on_init', False):
             self.start_teleop()
 
     def reset_transform(self, req):
-        self.transform[:3] = np.array([getattr(req.transform.translation, dim) for dim in 'xyz'])
-        rot = np.array([getattr(req.transform.rotation, dim) for dim in 'xyzw'])
-        self.transform[3:] = tf_conversions.transformations.euler_from_quaternion(rot)
+        self.transform = self.clip_transform(
+            np.concatenate((self.tf.tf_msg_to_pos(req.transform), self.tf.tf_msg_to_eul(req.transform)))
+        )
         self.set_tf()
         return SetTransformResponse(success=True, message='reset transform to ' + str(self.transform))
 
@@ -61,7 +78,7 @@ class Node:
 
     def start_teleop(self):
         if self.timer is None:
-            self.timer = rospy.Timer(rospy.Duration(self.dt), self.main_loop)
+            self.timer = rospy.Timer(self.duration, self.main_loop)
             success = True
             message = 'started tf teleoperation node'
         else:
@@ -93,12 +110,24 @@ class Node:
         else:
             raise ValueError(f"recieved operator signal is not correct length, expected 3 or 6, got {n}")
 
+    def clip_transform(self, transform):
+        transform[:3] = np.clip(transform[:3], self.lolim, self.uplim)
+        return transform
+
+    def apply_user_input(self):
+        self.transform = self.clip_transform(self.transform + self.dt*self.h)
+
     def main_loop(self, event):
-        self.transform += self.dt*self.h
+        self.apply_user_input()
         self.set_tf()
 
     def set_tf(self):
-        self.tf.set_tf(self.parent_frame, self.child_frame, self.transform[:3], tf_conversions.transformations.quaternion_from_euler(self.transform[3], self.transform[4], self.transform[5]))
+        self.tf.set_tf(
+            self.parent_frame,
+            self.child_frame,
+            self.transform[:3],
+            tf_conversions.transformations.quaternion_from_euler(self.transform[3], self.transform[4], self.transform[5])
+        )
 
     def spin(self):
         rospy.spin()
