@@ -22,8 +22,8 @@
     <!-- Map spacenav to operator signal -->
     <node pkg="operator_node" name="joy2osig" type="scale_node.py">
       <remap from="joy" to="spacenav/joy"/>
-      <param name="axes" type="str" value="0 1 2 3 4 5"/>
-      <param name="scale" type="str" value="1.0"/>
+      <rosparam param="config" file="$(find teleop)/configs/teleop_tf_demo_spacenav_config.yaml"/>
+      <param name="start_on_init" type="bool" value="true"/>
     </node>
   </group>
 
@@ -36,8 +36,7 @@
 
   <!-- Use operator signal to update a tf -->
   <node pkg="teleop" name="teleop_tf" type="teleop_tf_node.py">
-    <param name="parent_frame" type="str" value="tf_start"/>
-    <param name="child_frame" type="str" value="tf_target"/>
+    <rosparam param="config" file="$(find teleop)/configs/teleop_tf_demo_config.yaml"/>
     <param name="start_on_init" type="bool" value="true"/>
   </node>
 
