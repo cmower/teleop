@@ -1,3 +1,9 @@
 #+title: teleop
 
 Teleoperation tools for ROS.
+
+* TODO [#B] Finalize =teleop= package
+DEADLINE: <2022-04-25 Mon>
+
+* TODO [#B] Make =teleop= package public
+DEADLINE: <2022-04-25 Mon>
