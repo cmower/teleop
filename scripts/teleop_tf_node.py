@@ -110,6 +110,9 @@ class Node:
         else:
             raise ValueError(f"recieved operator signal is not correct length, expected 3 or 6, got {n}")
 
+    def is_in_limit(self, pos):
+        return np.logicical_and(self.lolim <= pos, pos <= self.uplim)
+
     def clip_transform(self, transform):
         transform[:3] = np.clip(transform[:3], self.lolim, self.uplim)
         return transform
