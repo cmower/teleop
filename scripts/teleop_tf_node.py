@@ -69,11 +69,14 @@ class Node:
             self.start_teleop()
 
     def reset_transform(self, req):
-        self.transform = self.clip_transform(
-            np.concatenate((self.tf.tf_msg_to_pos(req.transform), self.tf.tf_msg_to_eul(req.transform)))
-        )
-        self.set_tf()
-        return SetTransformResponse(success=True, message='reset transform to ' + str(self.transform))
+        pos = self.tf.tf_msg_to_pos(req.transform)
+        if self.is_in_limit(pos):
+            rot = self.tf.tf_msg_to_eul(req.transform)
+            self.transform = np.concatenate((pos, rot))
+            self.set_tf()
+            return SetTransformResponse(success=True, message='reset transform to ' + str(self.transform))
+        else:
+            return SetTransformResponse(success=False, message='given transform is outside limits!')
 
     def reset_zero(self, req):
         self.transform = np.zeros(6)
