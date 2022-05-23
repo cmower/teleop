@@ -7,9 +7,20 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   tf2
   tf2_ros
+  message_generation
 )
 
 # catkin_python_setup()
+
+add_service_files(
+  FILES
+  GetBoxLimits.srv
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+)
 
 catkin_package()
 

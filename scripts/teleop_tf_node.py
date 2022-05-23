@@ -28,6 +28,7 @@ from custom_ros_tools.tf import TfInterface
 from custom_srvs.srv import SetTransform, SetTransformResponse
 from custom_ros_tools.ros_comm import ToggleService
 from std_srvs.srv import Trigger, TriggerResponse
+from teleop.srv import GetBoxLimit, GetBoxLimitResponse
 
 class Node:
 
@@ -47,6 +48,9 @@ class Node:
         xlim = config.get('xlim', [-np.inf, np.inf])
         ylim = config.get('ylim', [-np.inf, np.inf])
         zlim = config.get('zlim', [-np.inf, np.inf])
+        self.xlim = np.array(xlim)
+        self.ylim = np.array(ylim)
+        self.zlim = np.array(zlim)
         self.lolim = np.array([xlim[0], ylim[0], zlim[0]])
         self.uplim = np.array([xlim[1], ylim[1], zlim[1]])
         if not self.is_in_limit([0,0,0]):
@@ -63,10 +67,18 @@ class Node:
         ToggleService('toggle_teleop_tf', self.start_teleop, self.stop_teleop)
         rospy.Service('reset_teleop_transform', SetTransform, self.reset_transform)
         rospy.Service('reset_teleop_transform_to_zero', Trigger, self.reset_zero)
+        rospy.Service('teleop_box_limits', GetBoxLimit, self.get_box_limits)
 
         # Start on initialization (optional)
         if rospy.get_param('~start_on_init', False):
             self.start_teleop()
+
+    def get_box_limits(self, req):
+        return GetBoxLimitResponse(
+            xlim=self.xlim.tolist(),
+            ylim=self.xlim.tolist(),
+            zlim=self.xlim.tolist(),
+        )
 
     def reset_transform(self, req):
         pos = self.tf.tf_msg_to_pos(req.transform)
