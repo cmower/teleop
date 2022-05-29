@@ -28,7 +28,7 @@ from custom_ros_tools.tf import TfInterface
 from custom_srvs.srv import SetTransform, SetTransformResponse
 from custom_ros_tools.ros_comm import ToggleService
 from std_srvs.srv import Trigger, TriggerResponse
-from teleop.srv import GetBoxLimit, GetBoxLimitResponse
+from teleop.srv import GetBoxLimits, GetBoxLimitsResponse
 
 class Node:
 
@@ -67,14 +67,14 @@ class Node:
         ToggleService('toggle_teleop_tf', self.start_teleop, self.stop_teleop)
         rospy.Service('reset_teleop_transform', SetTransform, self.reset_transform)
         rospy.Service('reset_teleop_transform_to_zero', Trigger, self.reset_zero)
-        rospy.Service('teleop_box_limits', GetBoxLimit, self.get_box_limits)
+        rospy.Service('teleop_box_limits', GetBoxLimits, self.get_box_limits)
 
         # Start on initialization (optional)
         if rospy.get_param('~start_on_init', False):
             self.start_teleop()
 
     def get_box_limits(self, req):
-        return GetBoxLimitResponse(
+        return GetBoxLimitsResponse(
             xlim=self.xlim.tolist(),
             ylim=self.xlim.tolist(),
             zlim=self.xlim.tolist(),
@@ -130,7 +130,7 @@ class Node:
             raise ValueError(f"recieved operator signal is not correct length, expected 3 or 6, got {n}")
 
     def is_in_limit(self, pos):
-        return np.logicical_and(self.lolim <= pos, pos <= self.uplim)
+        return np.logical_and(self.lolim <= pos, pos <= self.uplim).all()
 
     def clip_transform(self, transform):
         transform[:3] = np.clip(transform[:3], self.lolim, self.uplim)
